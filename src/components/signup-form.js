@@ -19,180 +19,195 @@ import Select from '@mui/material/Select'
 import { useState } from 'react'
 import googleimg from '../assets/google.png'
 import { useForm,SubmitHandler  } from 'react-hook-form'
+import IconButton from '@mui/material/IconButton';
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { MdVisibilityOff } from "react-icons/md";
+import { MdOutlineVisibility } from "react-icons/md";
+import { useNavigate } from 'react-router-dom'
+
+
+
+const schema = yup.object().shape({
+  role: yup.string().required("Role is required"),
+  name: yup.string().min(3, "Name must be at least 3 characters").required("Name is required"),
+  email: yup.string().email("Invalid email format").required("Email is required"),
+  password: yup
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .matches(/[A-Z]/, "Password must have at least one uppercase letter")
+    .matches(/[a-z]/, "Password must have at least one lowercase letter")
+    .matches(/[0-9]/, "Password must have at least one number")
+    .matches(/[@$!%*?&#]/, "Password must have at least one special character")
+    .required("Password is required"),
+  confirmPassword: yup
+    .string()
+    .oneOf([yup.ref("password"), null], "Passwords must match")
+    .required("Confirm Password is required"),
+});
 
 
 const SignupForm = () => {
-  const [typeofuser, setTypeOfUser] = useState('')
-  const [open, setOpen] = useState(false)
   const {
     register,
     handleSubmit,
-    formState: { errors,isSubmitting },
-    reset,
-    getValues,
-  } = useForm()
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(schema),
+  });
 
-  // const onSubmit = (data) => console.log(data)
-  function onSubmit(data){
-    console.log(data);
-    // store this data in local storage
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const navigate=useNavigate();
 
-    reset();
+ 
+  const togglePasswordVisibility = () => setShowPassword(!showPassword);
+  const toggleConfirmPasswordVisibility = () => setShowConfirmPassword(!showConfirmPassword);
 
-  }
+  const onSubmit = (data) => {
+    console.log("Submitted Data:", data,data.role==="vendor");
+    if(data.role==="vendor"){
+      let vendors=JSON.parse(localStorage.getItem("vendors")) || [];
+      vendors.push(data);
+      console.log( "helllllll",vendors)
 
-  const handleChange = (event) => {
-    setTypeOfUser(event.target.value)
-  }
+      localStorage.setItem("vendors",JSON.stringify(vendors));
+    }
+    else{
+      let users = JSON.parse(localStorage.getItem("users")) || [];
+      users.push(data);
+      localStorage.setItem("users",JSON.stringify(users));
+    }
 
-  const handleClose = () => {
-    setOpen(false)
-  }
-
-  const handleOpen = () => {
-    setOpen(true)
-  }
+    toast.success("Signup Successful!", {
+      position: "top-right",
+      autoClose: 3000,
+     
+    });
+    console.log("navigate to login");
+    setTimeout(() => {
+      navigate('/login');
+    }, 1000);
+  };
 
  
   return (
-    <div>
-      <form onSubmit={handleSubmit(onSubmit)}>
-     
+    <>
 
-        <FormControl sx={{ m: 1, minWidth: 130 }}>
-          <InputLabel id='demo-controlled-open-select-label'>
-            User's Type
-          </InputLabel>
-          <Select
-            labelId='demo-controlled-open-select-label'
-            id='demo-controlled-open-select'
-            open={open}
-            onClose={handleClose}
-            onOpen={handleOpen}
-            value={typeofuser}
-            label='UserType'
-            onChange={handleChange}
-          >
-            <MenuItem value=''>
-              <em>None</em>
-            </MenuItem>
-            <MenuItem value='user'>user</MenuItem>
-            <MenuItem value='vendor'>vendor</MenuItem>
+    <ToastContainer />
+
+    <Box
+      sx={{
+        minWidth: 300,
+        mx: "auto",
+        mt: 5,
+        p: 3,
+        boxShadow: 3,
+        borderRadius: 2,
+      }}
+    >
+      <Typography variant="h5" gutterBottom>
+        Signup
+      </Typography>
+
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <FormControl fullWidth margin="normal">
+          <InputLabel>Role</InputLabel>
+          <Select {...register("role")} error={!!errors.role}>
+            <MenuItem value="vendor">Vendor</MenuItem>
+            <MenuItem value="user">User</MenuItem>
           </Select>
+          <Typography variant="caption" color="error">
+            {errors.role?.message}
+          </Typography>
         </FormControl>
 
+     
         <TextField
-          
+          label="Name"
           fullWidth
-          label='Name'
-          margin='normal'
-          slotProps={{
-            input: {
-              ...register("name",{required:"Name is required"}),
-              startAdornment: (
-                <InputAdornment position='start'>
-                  <AccountCircle />
-                </InputAdornment>
-              ),
-            },
-          }}
-          variant='outlined'
+          margin="normal"
+          {...register("name")}
+          error={!!errors.name}
+          helperText={errors.name?.message}
         />
-        {
-          errors.name &&(
-            <p className="">{`${errors.name.message}`}</p>
-          )
-        }
+
+     
         <TextField
-          label='Email'
-          type='email'
-          variant='outlined'
+          label="Email"
           fullWidth
-          margin='normal'
-          slotProps={{
-            input: {
-              ...register("email",{required:"Email is required"}),
-              startAdornment: (
-                <InputAdornment position='start'>
-                  <MailOutlineIcon />
-                </InputAdornment>
-              ),
-            },
-          }}
+          margin="normal"
+          {...register("email")}
+          error={!!errors.email}
+          helperText={errors.email?.message}
         />
-         {
-          errors.email &&(
-            <p className="">{`${errors.email.message}`}</p>
-          )
-        }
+
+  
         <TextField
-          label='password'
-          type='password'
-          variant='outlined'
+          label="Password"
+          type={showPassword ? "text" : "password"}
           fullWidth
-          margin='normal'
-          slotProps={{
-            input: {
-              ...register("password",{required:"Password is required",minLength:{
-                value:8,
-                message:"password must be atleast 10 character"
-              }}),
-              startAdornment: (
-                <InputAdornment position='start'>
-                  <LockIcon />
-                </InputAdornment>
-              ),
-            },
+          margin="normal"
+          {...register("password")}
+          error={!!errors.password}
+          helperText={errors.password?.message}
+          InputProps={{
+            endAdornment: (
+              <InputAdornment position="end">
+                <IconButton onClick={togglePasswordVisibility} edge="end">
+                  {showPassword ? <MdVisibilityOff /> : <MdOutlineVisibility />}
+                </IconButton>
+              </InputAdornment>
+            ),
           }}
         />
-         {
-          errors.password &&(
-            <p className="">{`${errors.password.message}`}</p>
-          )
-        }
+
+   
         <TextField
-          label='confirm Password'
-          variant='outlined'
+          label="Confirm Password"
+          type={showConfirmPassword ? "text" : "password"}
           fullWidth
-          margin='normal'
-          slotProps={{
-            input: {
-              ...register("confirmPassword",{required:"confirm Password is required",
-                validate:(value)=>{
-                return  value===getValues("password")||"password must be match"
-                }
-              }),
-              startAdornment: (
-                <InputAdornment position='start'></InputAdornment>
-              ),
-            },
+          margin="normal"
+          {...register("confirmPassword")}
+          error={!!errors.confirmPassword}
+          helperText={errors.confirmPassword?.message}
+          InputProps={{
+            endAdornment: (
+              <InputAdornment position="end">
+                <IconButton onClick={toggleConfirmPasswordVisibility} edge="end">
+                  {showConfirmPassword ? <MdVisibilityOff /> : <MdOutlineVisibility />}
+                </IconButton>
+              </InputAdornment>
+            ),
           }}
         />
-         {
-          errors.confirmPassword &&(
-            <p className="">{`${errors.confirmPassword.message}`}</p>
-          )
-        }
-        <Button variant='contained' color='primary' type='submit' fullWidth
-        disabled={isSubmitting}>
-          Continue
+
+
+        <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 2 }}>
+          Signup
         </Button>
+
+
         <Box>
-          <Typography marginTop={3} textAlign={'center'}>
-            sign in with
-          </Typography>
-          <Box marginLeft={18} paddingTop={2}>
-            <img className='fb-img' src={fbimg}></img>
-            <img className='google-img' src={appleimg}></img>
-            <img className='apple-img' src={googleimg}></img>
-          </Box>
-          <Box display={'flex'} marginLeft={8} marginTop={2}>
-            <Typography>Already have an account? </Typography>
-            <Typography color='#3FB6FF'>login </Typography>
-          </Box>
+           <Typography marginTop={3} textAlign={'center'}>
+             sign in with
+           </Typography>
+           <Box marginLeft={18} paddingTop={2}>
+             <img className='fb-img' src={fbimg}></img>
+             <img className='google-img' src={appleimg}></img>
+             <img className='apple-img' src={googleimg}></img>
+           </Box>
+           <Box display={'flex'} marginLeft={8} marginTop={2}>
+             <Typography>Already have an account? </Typography>
+             <Typography color='#3FB6FF'>login </Typography>
+           </Box>
+           
         </Box>
       </form>
-    </div>
+    </Box>
+  </>
   )
 }
 

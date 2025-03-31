@@ -1,115 +1,149 @@
 
-import React from 'react'
-import TextField from '@mui/material/TextField'
-import Button from '@mui/material/Button'
-import Stack from '@mui/material/Stack'
-import InputAdornment from '@mui/material/InputAdornment'
-import AccountCircleIcon from '@mui/icons-material/AccountCircle'
-import AccountCircle from '@mui/icons-material/AccountCircle'
-import MailOutlineIcon from '@mui/icons-material/MailOutline'
-import LockIcon from '@mui/icons-material/Lock'
-import { Typography } from '@mui/material'
-import Box from '@mui/material/Box'
-import './signup-form.css'
-import fbimg from '../assets/fbimg.png'
-import appleimg from '../assets/apple.png'
-import InputLabel from '@mui/material/InputLabel'
-import MenuItem from '@mui/material/MenuItem'
-import FormControl from '@mui/material/FormControl'
-import Select from '@mui/material/Select'
-import { useState } from 'react'
-import googleimg from '../assets/google.png'
-import { useForm,SubmitHandler, set  } from 'react-hook-form'
-import * as Yup from 'yup'
 
+
+import React, { useState } from "react";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as Yup from "yup";
+import {
+  TextField,
+  Button,
+  Box,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
+  Typography,
+  InputAdornment,
+} from "@mui/material";
+import MailOutlineIcon from "@mui/icons-material/MailOutline";
+import LockIcon from "@mui/icons-material/Lock";
+import { useNavigate } from "react-router-dom";
+import { ToastContainer,toast} from "react-toastify";
+
+const validationSchema = Yup.object({
+  role: Yup.string().required("Role is required"),
+  email: Yup.string().email("Invalid Email").required("Email is required"),
+  password: Yup.string().required("Password is required"),
+});
 
 const LoginForm = () => {
-  const[errors,setErrors]=useState()
-  const validationSchema=Yup.object({
-    email:Yup.string().email("Invalid Email").required("First Name is required"),
-    password:Yup.string().required("Password is required")
-  })
-   async function handleSubmit(e){
-    e.preventDefault();
-    try{
-      await validationSchema.validate(FormData,{abortEarly:false})
-      console.log("you are logged in")
-      // check db and if the user is present then loged in else show an error
-    }
-    catch(error){
-      const newErrors={}
-      error.inner.forEach(err => {
-        newErrors[err.path]=err.message;
-      });
-      setErrors(newErrors);
+  const navigate = useNavigate();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(validationSchema),
+  });
 
-    }
+  const onSubmit = (data) => {
+    console.log("Login Data:", data);
+    
+    const users = JSON.parse(localStorage.getItem(data.role === "vendor" ? "vendors" : "users"));
+    console.log(users)
+    const userExists = users.find(user => user.email === data.email && user.password === data.password);
+    console.log(userExists)
+    if (userExists && data.role === "vendor") {
+      localStorage.setItem("vendorLogin", JSON.stringify(data.email));
+      toast.success("Vendor loggedin successfully!", {
+              position: "top-right",
+              autoClose: 3000,
+              hideProgressBar: false,
+              closeOnClick: true,
+              pauseOnHover: true,
+              draggable: true,
+              theme: "colored",
+            });
+      navigate("/vendor"); 
+  } 
+  else if (userExists && data.role === "user") {
+      toast.success("user logged in successfully!", {
+              position: "top-right",
+              autoClose: 3000,
+              hideProgressBar: false,
+              closeOnClick: true,
+              pauseOnHover: true,
+              draggable: true,
+              theme: "colored",
+            });
 
+      
+      localStorage.setItem("userLogin", JSON.stringify(data.email));
+
+      navigate('/home');
   }
-  return (
-    <div>
-       <form onSubmit={handleSubmit} >
-    
-     <TextField
-       label='Email'
-       variant='outlined'
-       fullWidth
-       margin='normal'
-       slotProps={{
-         input: {
-           
-           startAdornment: (
-             <InputAdornment position='start'>
-               <MailOutlineIcon />
-             </InputAdornment>
-           ),
-         },
-       }}
-     />
-     {/* {newErrors.email && <p className='error'>{newErrors.email}</p>} */}
-  
-     <TextField
-       label='password'
-       type='password'
-       variant='outlined'
-       fullWidth
-       margin='normal'
-       slotProps={{
-         input: {
-           
-           startAdornment: (
-             <InputAdornment position='start'>
-               <LockIcon />
-             </InputAdornment>
-           ),
-         },
-       }}
-     />
-     {/* {errors.password && <p className='error'>{errors.password}</p>} */}
-      
-    
-      
-     <Button variant='contained' color='primary' type='submit' fullWidth
-     >
-       Login
-     </Button>
-     <Box>
-       <Typography marginTop={3} textAlign={'center'}>
-         Login in with
-       </Typography>
-       <Box marginLeft={18} paddingTop={2}>
-         <img className='fb-img' src={fbimg}></img>
-         <img className='google-img' src={appleimg}></img>
-         <img className='apple-img' src={googleimg}></img>
-       </Box>
-       <Box display={'flex'} marginLeft={8} marginTop={2}>
-         <Typography>Don't have an account? </Typography>
-         <Typography color='#3FB6FF'>signup </Typography>
-       </Box>
-     </Box>
-   </form>
-    </div>
-  )
-}
+  else {
+      toast.success(" Invalid Credentials", {
+              position: "top-right",
+              autoClose: 3000,
+              hideProgressBar: false,
+              closeOnClick: true,
+              pauseOnHover: true,
+              draggable: true,
+              theme: "colored",
+            });
+  }
+  };
 
-export default LoginForm
+  return (
+    <>
+      <ToastContainer/>
+    
+     <Box sx={{ width: 300, margin: "auto", mt: 5 }}>
+      <Typography variant="h5" textAlign="center" mb={2}>Login</Typography>
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <FormControl fullWidth margin="normal">
+          <InputLabel>Role</InputLabel>
+          <Select {...register("role")}
+            defaultValue=""
+          >
+            <MenuItem value="user">User</MenuItem>
+            <MenuItem value="vendor">Vendor</MenuItem>
+          </Select>
+          {errors.role && <Typography color="error">{errors.role.message}</Typography>}
+        </FormControl>
+
+        <TextField
+          label="Email"
+          variant="outlined"
+          fullWidth
+          margin="normal"
+          {...register("email")}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <MailOutlineIcon />
+              </InputAdornment>
+            ),
+          }}
+        />
+        {errors.email && <Typography color="error">{errors.email.message}</Typography>}
+
+        <TextField
+          label="Password"
+          type="password"
+          variant="outlined"
+          fullWidth
+          margin="normal"
+          {...register("password")}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <LockIcon />
+              </InputAdornment>
+            ),
+          }}
+        />
+        {errors.password && <Typography color="error">{errors.password.message}</Typography>}
+
+        <Button variant="contained" color="primary" type="submit" fullWidth sx={{ mt: 2 }}>
+          Login
+        </Button>
+      </form>
+    </Box>
+    </>
+  );
+};
+
+export default LoginForm;
